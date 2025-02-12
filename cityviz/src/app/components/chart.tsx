@@ -3,6 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
 
+// Define a type for 311 service request data
+type ServiceRequest = {
+  created_date: string;
+};
+
 export default function Chart() {
   const chartRef = useRef<SVGSVGElement | null>(null);
   const [data, setData] = useState<{ date: string; count: number }[]>([]);
@@ -12,12 +17,12 @@ export default function Chart() {
       const response = await fetch(
         "https://data.cityofnewyork.us/resource/erm2-nwe9.json?$limit=500"
       );
-      const jsonData = await response.json();
+      const jsonData: ServiceRequest[] = await response.json();
 
       const grouped = d3.rollups(
         jsonData,
         (v) => v.length,
-        (d) => d.created_date.split("T")[0]
+        (d: ServiceRequest) => d.created_date.split("T")[0] // Explicitly tell TypeScript the type
       );
 
       setData(grouped.map(([date, count]) => ({ date, count })));

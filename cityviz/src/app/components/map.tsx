@@ -6,19 +6,20 @@ import { Feature, FeatureCollection, Point, GeoJsonProperties } from "geojson";
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_API_KEY || "";
 
+// Define complaint properties
 interface ComplaintProperties extends GeoJsonProperties {
   complaint: string;
   address: string;
 }
 
+// Define complaint feature structure
 interface ComplaintFeature extends Feature<Point, ComplaintProperties> {
-  geometry: Point; // Explicitly defining as Point
-  properties: ComplaintProperties; // Ensuring properties is always an object
+  geometry: Point;
+  properties: ComplaintProperties;
 }
 
 export default function Map() {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
-  const [map, setMap] = useState<mapboxgl.Map | null>(null);
   const [geojson, setGeojson] = useState<FeatureCollection<Point, ComplaintProperties> | null>(null);
 
   useEffect(() => {
@@ -26,18 +27,15 @@ export default function Map() {
       const response = await fetch(
         "https://data.cityofnewyork.us/resource/erm2-nwe9.json?$limit=500"
       );
-      const jsonData = await response.json();
+      const jsonData: any[] = await response.json();
 
       const features: ComplaintFeature[] = jsonData
-        .filter((request: any) => request.latitude && request.longitude)
-        .map((request: any) => ({
+        .filter((request) => request.latitude && request.longitude)
+        .map((request) => ({
           type: "Feature",
           geometry: {
             type: "Point",
-            coordinates: [
-              parseFloat(request.longitude),
-              parseFloat(request.latitude),
-            ],
+            coordinates: [parseFloat(request.longitude), parseFloat(request.latitude)],
           },
           properties: {
             complaint: request.complaint_type || "Unknown Complaint",
@@ -52,7 +50,7 @@ export default function Map() {
   }, []);
 
   useEffect(() => {
-        if (!mapContainerRef.current || !geojson) return;
+    if (!mapContainerRef.current || !geojson) return;
 
     const newMap = new mapboxgl.Map({
       container: mapContainerRef.current,
@@ -62,8 +60,6 @@ export default function Map() {
     });
 
     newMap.on("load", () => {
-      if (!geojson) return;
-
       newMap.addSource("complaints", {
         type: "geojson",
         data: geojson,
@@ -110,37 +106,26 @@ export default function Map() {
 
       newMap.on("click", "unclustered-point", (e) => {
         const features = newMap.queryRenderedFeatures(e.point, { layers: ["unclustered-point"] });
-      
+
         if (!features.length) return;
-      
+
         const feature = features[0];
-      
+
         // Ensure feature has correct structure
         if (!feature.geometry || !("coordinates" in feature.geometry) || !feature.properties) {
           console.error("Feature missing expected properties:", feature);
           return;
         }
-      
-        let coordinates = (feature.geometry as any).coordinates.slice(); // Ensure array copy
+
+        const coordinates = (feature.geometry as Point).coordinates;
         const complaint = feature.properties.complaint || "Unknown Complaint";
         const address = feature.properties.address || "Unknown Address";
-      
-        // Convert to valid coordinates (sometimes geoJSON reverses lat/lng)
-        if (typeof coordinates[0] === "object") {
-          coordinates = coordinates[0]; // If nested array, take first entry
-        }
-      
-        console.log("Feature clicked:", coordinates, complaint, address);
-      
-        new mapboxgl.Popup({ 
-            offset: [30, 0], 
-            closeOnClick: true 
-        })
-        .setLngLat([coordinates[0], coordinates[1]]) // Ensure it's [lng, lat]
-        .setHTML(`<strong>${complaint}</strong><br>${address}`)
-        .addTo(newMap);
+
+        new mapboxgl.Popup({ offset: [30, 0], closeOnClick: true })
+          .setLngLat(coordinates)
+          .setHTML(`<strong>${complaint}</strong><br>${address}`)
+          .addTo(newMap);
       });
-      
 
       newMap.on("mouseenter", "unclustered-point", () => {
         newMap.getCanvas().style.cursor = "pointer";
@@ -149,8 +134,6 @@ export default function Map() {
       newMap.on("mouseleave", "unclustered-point", () => {
         newMap.getCanvas().style.cursor = "";
       });
-
-      setMap(newMap);
     });
 
     return () => newMap.remove();

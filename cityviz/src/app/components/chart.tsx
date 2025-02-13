@@ -9,8 +9,10 @@ type ServiceRequest = {
   created_date: string;
 };
 
+type ChartData = { date: string; count: number };
+
 export default function Chart() {
-  const [data, setData] = useState<{ date: string; count: number }[]>([]);
+  const [data, setData] = useState<ChartData[]>([]);
 
   useEffect(() => {
     const fetchNYCData = async () => {
@@ -47,9 +49,16 @@ export default function Chart() {
   );
 }
 
+// Define Tooltip Props
+interface TooltipProps {
+  active?: boolean;
+  payload?: { payload: { date: string }; value: number }[];
+}
+
 // Custom Tooltip with Black Text
-const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: any[] }) => {
-  if (!active || !payload || !payload.length) return null;
+const CustomTooltip: React.FC<TooltipProps> = ({ active, payload }) => {
+  if (!active || !payload || payload.length === 0) return null;
+
   return (
     <TooltipContainer>
       <p>{payload[0].payload.date}</p>
@@ -68,4 +77,3 @@ const TooltipContainer = styled.div`
   font-weight: bold;
   text-align: center;
 `;
-

@@ -6,6 +6,14 @@ import { Feature, FeatureCollection, Point, GeoJsonProperties } from "geojson";
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_API_KEY || "";
 
+// Define the API response type
+interface ComplaintData {
+  latitude: string;
+  longitude: string;
+  complaint_type?: string;
+  incident_address?: string;
+}
+
 // Define complaint properties
 interface ComplaintProperties extends GeoJsonProperties {
   complaint: string;
@@ -24,26 +32,32 @@ export default function Map() {
 
   useEffect(() => {
     const fetchNYCData = async () => {
-      const response = await fetch(
-        "https://data.cityofnewyork.us/resource/erm2-nwe9.json?$limit=500"
-      );
-      const jsonData: any[] = await response.json();
+      try {
+        const response = await fetch(
+          "https://data.cityofnewyork.us/resource/erm2-nwe9.json?$limit=500"
+        );
+        if (!response.ok) throw new Error("Failed to fetch data");
 
-      const features: ComplaintFeature[] = jsonData
-        .filter((request) => request.latitude && request.longitude)
-        .map((request) => ({
-          type: "Feature",
-          geometry: {
-            type: "Point",
-            coordinates: [parseFloat(request.longitude), parseFloat(request.latitude)],
-          },
-          properties: {
-            complaint: request.complaint_type || "Unknown Complaint",
-            address: request.incident_address || "Unknown Address",
-          },
-        }));
+        const jsonData: ComplaintData[] = await response.json();
 
-      setGeojson({ type: "FeatureCollection", features });
+        const features: ComplaintFeature[] = jsonData
+          .filter((request) => request.latitude && request.longitude)
+          .map((request) => ({
+            type: "Feature",
+            geometry: {
+              type: "Point",
+              coordinates: [parseFloat(request.longitude), parseFloat(request.latitude)],
+            },
+            properties: {
+              complaint: request.complaint_type || "Unknown Complaint",
+              address: request.incident_address || "Unknown Address",
+            },
+          }));
+
+        setGeojson({ type: "FeatureCollection", features });
+      } catch (error) {
+        console.error("Error fetching NYC data:", error);
+      }
     };
 
     fetchNYCData();
@@ -111,13 +125,12 @@ export default function Map() {
 
         const feature = features[0];
 
-        // Ensure feature has correct structure
-        if (!feature.geometry || !("coordinates" in feature.geometry) || !feature.properties) {
+        if (!feature.geometry || feature.geometry.type !== "Point" || !feature.properties) {
           console.error("Feature missing expected properties:", feature);
           return;
         }
 
-        const coordinates = (feature.geometry as Point).coordinates;
+        const coordinates = feature.geometry.coordinates as [number, number];
         const complaint = feature.properties.complaint || "Unknown Complaint";
         const address = feature.properties.address || "Unknown Address";
 
@@ -136,7 +149,9 @@ export default function Map() {
       });
     });
 
-    return () => newMap.remove();
+    return () => {
+      if (newMap) newMap.remove();
+    };
   }, [geojson]);
 
   return <div ref={mapContainerRef} className="w-full h-[500px]" />;

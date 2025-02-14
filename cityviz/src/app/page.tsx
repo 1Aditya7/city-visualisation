@@ -1,6 +1,7 @@
 import Map from "./components/map";
 import Chart from "./components/chart";
 import BoroughChart from "./components/BoroughChart";
+import useEffect from "react";
 
 export default function Home() {
   return (

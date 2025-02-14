@@ -2,17 +2,33 @@
 
 import { useEffect, useState } from "react";
 
+interface NYC311Request {
+  unique_key: string;
+  complaint_type: string;
+  descriptor?: string;
+  status: string;
+  created_date: string;
+  resolution_description?: string;
+  incident_address?: string;
+}
+
 export default function DataFetcher() {
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<NYC311Request[]>([]);
 
   useEffect(() => {
     const fetchNYCData = async () => {
-      const response = await fetch(
-        "https://data.cityofnewyork.us/resource/erm2-nwe9.json?$limit=5"
-      );
-      const jsonData = await response.json();
-      console.log(jsonData); // Check data structure in console
-      setData(jsonData);
+      try {
+        const response = await fetch(
+          "https://data.cityofnewyork.us/resource/erm2-nwe9.json?$limit=5"
+        );
+        if (!response.ok) throw new Error("Failed to fetch data");
+        
+        const jsonData: NYC311Request[] = await response.json();
+        console.log(jsonData); // Check data structure in console
+        setData(jsonData);
+      } catch (error) {
+        console.error("Error fetching NYC data:", error);
+      }
     };
 
     fetchNYCData();

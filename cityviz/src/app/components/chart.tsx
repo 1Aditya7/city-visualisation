@@ -35,8 +35,8 @@ export default function Chart() {
   }, []);
 
   return (
-    <div style={{ width: "50%", margin: "auto" }}>
-      <ResponsiveContainer width="100%" height={350}>
+    <div className="w-full max-w-4xl mx-auto">
+      <ResponsiveContainer width="100%" aspect={2}>
         <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 50 }}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="date" angle={-45} textAnchor="end" />
@@ -55,7 +55,7 @@ interface TooltipProps {
   payload?: { payload: { date: string }; value: number }[];
 }
 
-// Custom Tooltip with Black Text
+// Custom Tooltip
 const CustomTooltip: React.FC<TooltipProps> = ({ active, payload }) => {
   if (!active || !payload || payload.length === 0) return null;
 
@@ -67,7 +67,7 @@ const CustomTooltip: React.FC<TooltipProps> = ({ active, payload }) => {
   );
 };
 
-// Styled Tooltip with Black Text
+// Styled Tooltip
 const TooltipContainer = styled.div`
   background: white;
   padding: 8px;
